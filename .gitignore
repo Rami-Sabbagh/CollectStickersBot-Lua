@@ -45,5 +45,8 @@ doc
 # Bot's Storage directory
 storage
 
+# Bot's Log files
+logs
+
 # Packaged upgrade files
 *.zip

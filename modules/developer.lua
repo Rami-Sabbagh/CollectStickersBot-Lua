@@ -100,6 +100,46 @@ function dcommands.error(message)
     error(tostring(message.text))
 end
 
+--------------------------------[[ /flush_log command ]]--------------------------------
+
+--Flush the log file
+function dcommands.flush_log(message)
+    logger.logFile:flush()
+    message.chat:sendMessage("Flushed successfully sir ✅")
+end
+
+--------------------------------[[ /export_log command ]]--------------------------------
+
+--Flush and upload the log file
+function dcommands.export_log(message)
+    logger.logFile:flush()
+
+    local file = assert(io.open(logger.logPath, "rb"))
+    local fileLength = file:seek("end")
+    file:seek("set")
+
+    if fileLength > 20*1024*1024 then
+        message.chat:sendMessage("Sir, the log is larger than 20 MBs 😅\nTelegram won't allow me to upload it, so you'll have to pull it manually, sorry 😕")
+    elseif fileLength == 0 then
+        message.chat:sendMessage("Sir, the log is empty 😳")
+    else
+        message.chat:sendChatAction("upload_document")
+        message.chat:sendDocument({filename=logger.logFilename, data=file, len=fileLength})
+    end
+    pcall(io.close, file)
+end
+
+--------------------------------[[ /new_log commands ]]--------------------------------
+
+--End the current log and start a new one
+function dcommands.new_log(message)
+    local oldFilename = logger.logFilename
+    logger.info("Log file ended under a request by a developer.")
+    logger.newLogFile()
+    logger.info("Continuation of logfile "..oldFilename)
+    message.chat:sendMessage("Sir, I've started a new log file successfully ✅")
+end
+
 --------------------------------[[ /upgrade command ]]--------------------------------
 
 --Upgrade the bot

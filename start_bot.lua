@@ -1,7 +1,7 @@
 local logger = require("utilities.logger")
 
 logger.title("---------------------------")
-logger.title(" CollectStickersBot V1.0.0 ")
+logger.title(" CollectStickersBot V1.0.1 ")
 logger.title(" By Rami Sabbagh           ")
 logger.title("---------------------------")
 print("")
@@ -268,3 +268,5 @@ if not ok then
 
     if not ok2 then logger.critical("Failed to write error.txt: "..tostring(err2)) end
 end
+
+logger.logFile:close()
