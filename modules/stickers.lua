@@ -94,7 +94,6 @@ local function stickerHandler(update)
     if ok2 then
         local stickerSet = telegram.getStickerSet(setName)
         response.chat:sendMessage("Added into ["..stickerSet.title.."](https://t.me/addstickers/"..setName..") "..(newSet and "**(New)** " or "").."successfully ✅\nThe sticker will take a while to show in the pack.", "Markdown", nil, nil, replyToMessageID)
-        --response.chat:sendSticker(stickerSet.stickers[#stickerSet.stickers].fileID)
     else
         logger.error("Failed to add sticker:", setName)
         response.chat:sendMessage("Failed to add the sticker, please re-send the sticker to try again", nil, nil, nil, replyToMessageID)
