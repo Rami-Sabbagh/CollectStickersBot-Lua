@@ -12,6 +12,12 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Build Upgrade",
+            "type": "shell",
+            "command": "bash ./package_upgrade.sh",
+            "problemMatcher": []
         }
     ]
 }

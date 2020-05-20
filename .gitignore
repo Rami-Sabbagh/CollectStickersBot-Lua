@@ -49,4 +49,5 @@ storage
 logs
 
 # Packaged upgrade files
-*.zip
+upgrade
+upgrade.zip
