@@ -1,7 +1,7 @@
 local logger = require("utilities.logger")
 
 logger.title("---------------------------")
-logger.title(" CollectStickersBot V1.0.1 ")
+logger.title(" CollectStickersBot V1.0.2 ")
 logger.title(" By Rami Sabbagh           ")
 logger.title("---------------------------")
 print("")
@@ -146,13 +146,16 @@ local function pullUpdates(timeout)
     return iterator
 end
 
-local function checkError(err)
+local function checkError(err, noerr)
     if not err then return end
     if err:sub(-10, -1) == ": SHUTDOWN" then
+        if noerr then return true end
         error("SHUTDOWN", 2)
     elseif err:sub(-9, -1) == ": RESTART" then
+        if noerr then return true end
         error("RESTART", 2)
     elseif err:sub(-9, -1) == ": UPGRADE" then
+        if noerr then return true end
         error("UPGRADE", 2)
     end
 end
@@ -260,7 +263,11 @@ end
 
 if not ok then
     print("")
-    logger.error(err)
+    if checkError(err, true) then
+        logger.error(err)
+    else
+        logger.critical(err)
+    end
 
     local ok2, err2 = pcall(function()
         local file = assert(io.open("error.txt", "wb"))

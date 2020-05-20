@@ -31,6 +31,24 @@ do
     end
 end
 
+local reportChatID =  STORAGE.developer.report.chatID
+
+do
+    local loggerCritical = logger.critical
+
+    local function report(...)
+        if reportChatID then
+            local ok, err = pcall(telegram.sendMessage, reportChatID, "*[CRITICAL]:* "..table.concat({...}, " ").." ⚠", "Markdown")
+            if not ok then logger.error("Failed to send critical report:", err) end
+        end
+    end
+
+    logger.critical = function(...)
+        loggerCritical(...)
+        pcall(report, ...)
+    end
+end
+
 --------------------------------[[ Module Variables ]]--------------------------------
 
 local isDeveloper = {}
@@ -138,6 +156,17 @@ function dcommands.new_log(message)
     logger.newLogFile()
     logger.info("Continuation of logfile "..oldFilename)
     message.chat:sendMessage("Sir, I've started a new log file successfully ✅")
+end
+
+--------------------------------[[ /report_here command ]]--------------------------------
+
+--Report critical errors in this chat
+function dcommands.report_here(message)
+    local report = STORAGE.developer.report
+    report.chatID = message.chat.id
+    report()
+    reportChatID = message.chat.id
+    message.chat:sendMessage("Sir, This channel has been configured for sending critical reports successfully ✅")
 end
 
 --------------------------------[[ /upgrade command ]]--------------------------------
