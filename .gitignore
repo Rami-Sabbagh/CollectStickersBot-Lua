@@ -39,6 +39,9 @@ luac.out
 *.x86_64
 *.hex
 
+# Documentation
+doc
+
 # Bot's Storage directory
 storage
 
