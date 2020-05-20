@@ -2,7 +2,9 @@
 # Dependencies
 
 ```bash
-sudo luarocks install lua-telegram-bot lua-cjson lua-http cqueues LuaFileSystem ansicolors
+sudo apt install build-essential m4 luajit luarocks
+sudo luarocks install --server=https://luarocks.dev lua-telegram-bot
+sudo luarocks install lua-cjson lua-http cqueues LuaFileSystem ansicolors
 ```
 
 - `lua-telegram-bot` for using Telegram's bots API.
