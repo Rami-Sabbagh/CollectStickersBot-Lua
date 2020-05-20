@@ -6,6 +6,7 @@ local http = require("http.compat.socket")
 local cqueues = require("cqueues")
 local telegram = require("telegram")
 
+local workDelay = 5 --Cooldown time (in seconds) between each sticker process.
 local workQueueLimit = 5
 local workQueue = STORAGE.stickers.workQueue
 local workChats = STORAGE.stickers.workChats
@@ -127,6 +128,8 @@ local function newChatWorker(chatID)
             if not ok then
                 logger.critical("Stickers worker failure:", err)
             end
+
+            if #workQueue[sChatID] > 0 and not terminateWorkers then cqueues.sleep(workDelay) end
         end
 
         if #workQueue[sChatID] == 0 then
@@ -191,7 +194,7 @@ local function stickerHandler(update)
     end
 
     if #workQueue[chatID] >= workQueueLimit then
-        response.chat:sendMessage("Please wait until the previous stickers are processed ⚠🚦", nil, nil, nil, response.messageID)
+        response.chat:sendMessage("Please wait until the previous stickers are processed ⚠", nil, nil, nil, response.messageID)
         response.chat:sendChatAction("typing")
         return
     end
