@@ -80,6 +80,8 @@ local function stickerHandler(update)
     local response = update.message
     if not response then return end --Filter non message updates
 
+    if INTERACTIVES[response.chat.id] then return end --Filter messages on chats with an active interactive commands.
+
     local replyToMessageID = response.messageID
 
     if not response.sticker then
