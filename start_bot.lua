@@ -67,6 +67,8 @@ local commands = {}
 local descriptions = {}
 local interactives = {}
 
+INTERACTIVES = interactives
+
 for moduleName in lfs.dir("modules") do
     if moduleName ~= "." and moduleName ~= ".." then
         local module = dofile("modules/"..moduleName)

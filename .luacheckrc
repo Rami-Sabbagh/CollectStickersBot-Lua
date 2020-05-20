@@ -10,7 +10,8 @@ globals = {
     "CQUE",
     "EQUE",
     "CONFIG",
-    "STORAGE"
+    "STORAGE",
+    "INTERACTIVES"
 }
 
 --Exclude external libraries
