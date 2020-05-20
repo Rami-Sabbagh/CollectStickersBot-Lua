@@ -39,3 +39,8 @@ luac.out
 *.x86_64
 *.hex
 
+# Bot's Storage directory
+storage
+
+# Packaged upgrade files
+*.zip
