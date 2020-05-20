@@ -50,6 +50,80 @@ end
 --The module's commands array
 local commands = {}
 
+--------------------------------[[ /stickerfile command ]]--------------------------------
+
+function commands.stickerfile(message)
+    if not message then return "Get the .png/.tgs file of a sticker 📎" end
+
+    local currentStage
+
+    local function stageBusy(update)
+        if not update.message then return end
+        update.message.chat:sendMessage("Please wait while the bot is still processing your previous message ⏱", nil, nil, nil, update.message.messageID)
+    end
+
+    local function stageSticker(update)
+        if not update.message then return end
+        local response = update.message
+
+        if not response.sticker then
+            response.chat:sendMessage("Please send the sticker you wish to get it's file 📄\nOr /cancel to stop and return to normal operation.", nil, nil, nil, response.messageID)
+            return
+        end
+
+        local sticker = response.sticker
+        currentStage = stageBusy
+        response.chat:sendChatAction("upload_document")
+
+        local stickerFile = sticker:getFile()
+        local stickerURL = stickerFile:getURL(CONFIG.token)
+
+        local stickerData = {}
+        local stickerSink = ltn12.sink.table(stickerData)
+
+        local ok1, err1 = http.request{
+            url = stickerURL,
+            sink = stickerSink,
+            method = "GET"
+        }
+
+        if not ok1 then
+            logger.error("Failure while downloading a sticker, fileID:", sticker.fileID, "error:", err1)
+            response.chat:sendMessage("An error occured while downloading the sticker, please re-send the sticker to try again", nil, nil, nil, response.messageID)
+            currentStage = stageSticker
+            return
+        end
+
+        stickerData = table.concat(stickerData)
+
+        local ok2, err2 = pcall(response.chat.sendDocument, response.chat, {filename = sticker.isAnimated and "sticker.tgs" or "sticker.png", data=stickerData}, nil, "Send the next sticker or /cancel to stop and return to normal operation.")
+        if not ok2 then
+            logger.error("Failure while uploading a sticker file:", err2)
+            response.chat:sendMessage("An error occured while uploading the sticker, please re-send the sticker to try again", nil, nil, nil, response.messageID)
+            currentStage = stageSticker
+            return
+        end
+
+        currentStage = stageSticker
+    end
+
+    currentStage = stageSticker
+
+    return function(update, overridden)
+        if not update then
+            if overridden then
+                message.chat:sendMessage("ٌReturned to normal operation successfully ✅", nil, nil, nil, message.messageID)
+            else
+                message.chat:sendMessage("Please send the sticker you wish to get it's file 📄\nOr /cancel to stop and return to normal operation.", nil, nil, nil, message.messageID)
+            end
+
+            return
+        end
+
+        return currentStage(update)
+    end
+end
+
 --------------------------------[[ Raw updates handler ]]--------------------------------
 
 local function stickerHandler(update)
