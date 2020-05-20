@@ -63,7 +63,7 @@ local function processSticker(request)
     local ok1, stickerData = downloadFile(stickerURL)
 
     if not ok1 then
-        logger.error("Failure whilwe downloading a sticker, fileID:", fileID, "error:", stickerData)
+        logger.error("Failure while downloading a sticker, fileID:", fileID, "error:", stickerData)
         telegram.sendMessage(chatID, "Error while cloning the sticker, please wait a while and resend the sticker to retry.", nil, nil, nil, messageID)
         return
     end
@@ -129,7 +129,10 @@ local function newChatWorker(chatID)
                 logger.critical("Stickers worker failure:", err)
             end
 
-            if #workQueue[sChatID] > 0 and not terminateWorkers then cqueues.sleep(workDelay) end
+            if #workQueue[sChatID] > 0 and not terminateWorkers then
+                telegram.sendChatAction(chatID, "typing")
+                cqueues.sleep(workDelay)
+            end
         end
 
         if #workQueue[sChatID] == 0 then
@@ -153,7 +156,7 @@ resumeChatWorkers()
 
 --------------------------------[[ Connect workCQUE with the main CQUE ]]--------------------------------
 
-CQUE:wrap(function() while true do assert(workCQUE:step()) cqueues.sleep() end end)
+CQUE:wrap(function() while not terminateWorkers do assert(workCQUE:step()) cqueues.sleep() end end)
 
 --------------------------------[[ Exit Handler ]]--------------------------------
 
@@ -162,8 +165,10 @@ EQUE:wrap(function()
     workQueue()
     workChats()
 
-    logger.loading("Finishing the under-processing stickers queue.")
     terminateWorkers = true
+    if workCQUE:count() == 0 then return true end
+
+    logger.loading("Finishing the under-processing stickers queue.")
     for err in workCQUE:errors() do
         logger.error("- Error while finishing workCQUE:", err)
     end
