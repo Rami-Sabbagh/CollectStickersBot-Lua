@@ -1,7 +1,7 @@
 local logger = require("utilities.logger")
 
 logger.title("---------------------------")
-logger.title(" CollectStickersBot V1.1.2 ")
+logger.title(" CollectStickersBot V1.1.3 ")
 logger.title(" By Rami Sabbagh           ")
 logger.title("---------------------------")
 print("")

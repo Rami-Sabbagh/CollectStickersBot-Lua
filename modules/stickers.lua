@@ -137,6 +137,7 @@ local function newChatWorker(chatID)
 
         if #workQueue[sChatID] == 0 then
             workChats[sChatID] = nil
+            workQueue[sChatID] = nil
         end
     end)
 end
