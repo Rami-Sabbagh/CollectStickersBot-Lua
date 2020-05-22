@@ -20,6 +20,25 @@ local telegram = require("telegram")
 local cqueues = require("cqueues")
 local lfs = require("lfs")
 
+do
+    local request = telegram.request
+    telegram.request = function(method, parameters, timeout, files)
+        local startTime = cqueues.monotime()
+
+        local ok, a, b = request(method, parameters, timeout, files)
+
+        if ok then
+            local endTime = cqueues.monotime()
+            local letancy = math.floor((endTime - startTime) * 1000)
+            STATSD:timer("telegram.request.letancy."..tostring(method):lower(), letancy)
+        else
+            STATSD:increment("telegram.request.failure."..tostring(method):lower())
+        end
+
+        return ok, a, b
+    end
+end
+
 --The bot's storage system
 STORAGE = require("utilities.storage")
 
@@ -197,7 +216,13 @@ local function commandHandler(update)
         local commandFunc = commands[commandName]
         local commandVisiblity = descriptions[commandName] and "public" or "hidden"
         if commandFunc then
+            local startTime = cqueues.monotime()
             local ok, interactive = pcall(commandFunc, update.message)
+            local endTime = cqueues.monotime()
+
+            local executionTime = math.floor((endTime - startTime)*1000)
+            STATSD:timer("commands.time."..commandVisiblity.."."..commandName:gsub("_", ""), executionTime)
+
             if ok then
                 STATSD:increment("commands.success."..commandVisiblity.."."..commandName:gsub("_", ""))
                 if interactive then
