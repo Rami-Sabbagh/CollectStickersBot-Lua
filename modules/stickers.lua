@@ -63,6 +63,7 @@ local function processSticker(request)
     local ok1, stickerData = downloadFile(stickerURL)
 
     if not ok1 then
+        STATSD:increment("modules.stickers.process.failure.download."..tostring(stickerData):gsub(" ", "_"):gsub("%.,", ""))
         logger.error("Failure while downloading a sticker, fileID:", fileID, "error:", stickerData)
         telegram.sendMessage(chatID, "Error while cloning the sticker, please wait a while and resend the sticker to retry.", nil, nil, nil, messageID)
         return
@@ -94,11 +95,12 @@ local function processSticker(request)
                 end
             end
         else --Create a new sticker set
+            newSet = true
             local title = string.format("%s's collection vol.%d", userFirstName, volume)
             local ok3, err = pcall(telegram.createNewStickerSet, userID, name, title, pngSticker, tgsSticker, emoji or "⚠", not not maskPosition, maskPosition)
             if not ok3 then ok2, setName = false, err break end
 
-            ok2, setName, newSet = true, name, true
+            ok2, setName = true, name
             break
         end
 
@@ -108,7 +110,10 @@ local function processSticker(request)
     if ok2 then
         local stickerSet = telegram.getStickerSet(setName)
         telegram.sendMessage(chatID, "Added into ["..stickerSet.title.."](https://t.me/addstickers/"..setName..") "..(newSet and "**(New)** " or "").."successfully ✅\nThe sticker will take a while to show in the pack.", "Markdown", nil, nil, messageID)
+        local stickerType = isAnimated and "animated" or maskPosition and "mask" or "static"
+        STATSD:increment("modules.stickers.process."..stickerType)
     else
+        STATSD:increment("modules.stickers.process.failure."..(newSet and "new" or "add").."."..tostring(setName):gsub(" ", "_"):gsub("%.,", ""))
         logger.error("Failed to add sticker:", setName)
         telegram.sendMessage(chatID, "Failed to add the sticker, please re-send the sticker to try again", nil, nil, nil, messageID)
     end
@@ -119,6 +124,7 @@ end
 local function newChatWorker(chatID)
     local sChatID = tostring(chatID)
     workCQUE:wrap(function()
+        STATSD:increment("modules.stickers.worker.started")
 
         while #workQueue[sChatID] > 0 and not terminateWorkers do
             local request = workQueue[sChatID][#workQueue[sChatID]] --The last one in the queue.
@@ -126,6 +132,7 @@ local function newChatWorker(chatID)
 
             local ok, err = pcall(processSticker, request)
             if not ok then
+                STATSD:increment("modules.stickers.worker.error")
                 logger.critical("Stickers worker failure:", err)
             end
 
@@ -139,6 +146,8 @@ local function newChatWorker(chatID)
             workChats[sChatID] = nil
             workQueue[sChatID] = nil
         end
+
+        STATSD:increment("modules.stickers.worker.finished")
     end)
 end
 
@@ -159,6 +168,7 @@ resumeChatWorkers()
 
 CQUE:wrap(function()
     while not terminateWorkers do
+        STATSD:gauge("modules.stickers.worker.active", workCQUE:count())
         assert(workCQUE:step())
         cqueues.sleep()
     end
@@ -199,12 +209,14 @@ local function stickerHandler(update)
 
     if not response.sticker then --Filter non sticker messages
         if not response.text or response.text:sub(1,1) == "/" then return end
+        STATSD:increment("modules.stickers.handler.invalid")
         response.chat:sendMessage("Please send the sticker you want to add into your collections\nSend /help for help", nil, nil, nil, response.messageID)
         if workChats[chatID] then response:sendChatAction("typing") end
         return
     end
 
     if #workQueue[chatID] >= workQueueLimit then
+        STATSD:increment("modules.stickers.handler.full")
         response.chat:sendMessage("Please wait until the previous stickers are processed ⚠", nil, nil, nil, response.messageID)
         response.chat:sendChatAction("typing")
         return
@@ -237,6 +249,8 @@ local function stickerHandler(update)
         workChats[chatID] = true
         newChatWorker(response.chat.id)
     end
+
+    STATSD:increment("modules.stickers.handler.success")
 end
 
 --The module's update handler
