@@ -32,6 +32,7 @@
 ### User commands
 
 - `commands.processed` - (Counter) The total number of text messages starting with a `/` processed.
+- `commands.time.<public/hidden>.<command_name>` - (Timer) Command execution time.
 - `commands.success.<public/hidden>.<command_name>` - (Counter) Commands executed successfully count.
 - `commands.failure.<public/hidden>.<command_name>` - (Counter) Commands failed in their execution count.
 - `commands.invalid.<command_name>` - (Counter) Unknown commands execution count.
@@ -70,3 +71,8 @@
 - `bot.ready` - (Counter) The number of times the bot got ready.
 - `bot.exit.<shutdown/restart/upgrade/crash>` - (Counter) The number of times the bot has exited.
 - `bot.cque.count` - (Gauge) The number of controllers in the main bot cqueue.
+
+## Telegram
+
+- `telegram.request.letancy.<method>` - (Timer) The time a request has took.
+- `telegram.request.failure.<method>` - (Counter) Telegram requests failure count.
