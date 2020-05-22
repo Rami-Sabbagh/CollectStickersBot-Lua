@@ -185,6 +185,8 @@ local function commandHandler(update)
     if not update.message.text then return end --Ignore non-text messages
     if update.message.text:sub(1,1) ~= "/" then return end --Ignore non-command messages
 
+    STATSD:increment("commands.processed")
+
     local commandName = update.message.text:match("^/%S*"):lower():sub(2,-1)
     local targetBot = commandName:match("@%S*$")
     if targetBot and targetBot ~= myTag then return end  --Ignore commands for other bots
@@ -193,9 +195,11 @@ local function commandHandler(update)
 
     return function()
         local commandFunc = commands[commandName]
+        local commandVisiblity = descriptions[commandName] and "public" or "hidden"
         if commandFunc then
             local ok, interactive = pcall(commandFunc, update.message)
             if ok then
+                STATSD:increment("commands.success."..commandVisiblity.."."..commandName:gsub("_", ""))
                 if interactive then
                     local chatID = update.message.chat.id
                     --Tell the current interactive command that it lost control
@@ -222,10 +226,12 @@ local function commandHandler(update)
                 end
             else
                 checkError(interactive)
+                STATSD:increment("commands.failure."..commandVisiblity.."."..commandName:gsub("_", ""))
                 logger.error("Failed to execute command '"..commandName.."':", interactive)
             end
         else
             pcall(update.message.chat.sendMessage, update.message.chat, "Unknown command `/"..commandName.."`.", "Markdown")
+            STATSD:increment("commands.invalid."..commandName:gsub("_", ""))
         end
     end
 end
