@@ -83,7 +83,7 @@ local function processSticker(request)
     local ok2, setName, newSet
     local volume = 1
     while true do
-        local name = string.format("Collection_%d_%d_by_%s", volume, userID, ME.username)
+        local name = string.format(DEVELOPERS[userID] and "Developer_%d_%d_by_%s" or "Collection_%d_%d_by_%s", volume, userID, ME.username)
         local ok, stickerSet = pcall(telegram.getStickerSet, name)
         if ok then --Check if the sticker can be added to this set
             if stickerSet.isAnimated == request.isAnimated and #stickerSet.stickers < maxStickers then

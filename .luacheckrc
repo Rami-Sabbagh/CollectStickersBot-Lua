@@ -12,6 +12,7 @@ globals = {
     "STATSD",
     "CONFIG",
     "STORAGE",
+    "DEVELOPERS",
     "INTERACTIVES"
 }
 

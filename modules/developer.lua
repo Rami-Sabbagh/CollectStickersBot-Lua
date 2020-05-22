@@ -52,6 +52,7 @@ end
 --------------------------------[[ Module Variables ]]--------------------------------
 
 local isDeveloper = {}
+DEVELOPERS = isDeveloper
 local forceReply = telegram.structures.ForceReply(true) --Selective force reply markup object.
 
 --The module's commands array
