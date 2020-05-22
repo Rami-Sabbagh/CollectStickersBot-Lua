@@ -10,7 +10,7 @@ STATSD = statsd({
 local logger = require("utilities.logger")
 
 logger.title("---------------------------")
-logger.title(" CollectStickersBot V1.2.4 ")
+logger.title(" CollectStickersBot V1.2.5 ")
 logger.title(" By Rami Sabbagh           ")
 logger.title("---------------------------")
 print("")
@@ -151,6 +151,7 @@ end)
 local lastUpdatePollTime
 
 local function pullUpdates(timeout)
+    STATSD:gauge("bot.cque.count", que:count())
     local ok, updates = false, {}
     local nextIndex = 1
 
@@ -272,11 +273,6 @@ local function interactiveHandler(update, handler, chatID)
         end
     end
 end
-
-que:wrap(function()
-    STATSD:gauge("bot.cque.count", que:count())
-    cqueues.sleep(1)
-end)
 
 local lastUpdateTime
 
