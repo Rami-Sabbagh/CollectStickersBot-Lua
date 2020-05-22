@@ -10,7 +10,7 @@ STATSD = statsd({
 local logger = require("utilities.logger")
 
 logger.title("---------------------------")
-logger.title(" CollectStickersBot V1.2.3 ")
+logger.title(" CollectStickersBot V1.2.4 ")
 logger.title(" By Rami Sabbagh           ")
 logger.title("---------------------------")
 print("")
@@ -344,7 +344,7 @@ if not ok then
     print("")
     if checkError(err, true) then
         logger.error(err)
-        STATSD:increment("bot.exit,reason="..err:lower():gsub(".*%s"))
+        STATSD:increment("bot.exit,reason="..err:lower():gsub(".*%s", ""))
     else
         logger.critical(err)
         STATSD:increment("bot.exit,reason=crash")
