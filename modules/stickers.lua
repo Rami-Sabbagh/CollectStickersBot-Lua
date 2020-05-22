@@ -43,6 +43,8 @@ end
 -- @treturn boolean `true` when a new stickers set has been created.
 local function processSticker(request)
 
+    local startTime = cqueues.monotime()
+
     --Send the typing indicator because this can be a lengthy operation.
     telegram.sendChatAction(request.chatID, "typing")
 
@@ -117,6 +119,10 @@ local function processSticker(request)
         logger.error("Failed to add sticker:", setName)
         telegram.sendMessage(chatID, "Failed to add the sticker, please re-send the sticker to try again", nil, nil, nil, messageID)
     end
+
+    local endTime = cqueues.monotime()
+    local processingTime = math.floor((endTime - startTime)*1000)
+    STATSD:gauge("modules.stickers.process.time,type="..(ok2 and "success" or "failure"), processingTime)
 end
 
 --- Summon a new worker for a chat.

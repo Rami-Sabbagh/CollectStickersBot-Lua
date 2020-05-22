@@ -7,6 +7,7 @@
 
 ### Stickers processing
 
+- `modules.stickers.process.time,type=<type>` - (Gauge) The time taken for processing a sticker, type (`success, failure`).
 - `modules.stickers.process.success,type=animated` - (Counter) Processed animated stickers count.
 - `modules.stickers.process.success,type=static` - (Counter) Processed static stickers count.
 - `modules.stickers.process.success,type=mask` - (Counter) Processed mask stickers count.

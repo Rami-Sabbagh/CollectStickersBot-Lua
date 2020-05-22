@@ -10,7 +10,7 @@ STATSD = statsd({
 local logger = require("utilities.logger")
 
 logger.title("---------------------------")
-logger.title(" CollectStickersBot V1.2.5 ")
+logger.title(" CollectStickersBot V1.2.6 ")
 logger.title(" By Rami Sabbagh           ")
 logger.title("---------------------------")
 print("")
