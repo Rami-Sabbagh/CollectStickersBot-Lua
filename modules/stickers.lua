@@ -63,6 +63,7 @@ local function processSticker(request)
     local ok1, stickerData = downloadFile(stickerURL)
 
     if not ok1 then
+        STATSD:increment("stickers.failure,stage=download,fileid="..tostring(fileID)..",error="..tostring(stickerData))
         logger.error("Failure while downloading a sticker, fileID:", fileID, "error:", stickerData)
         telegram.sendMessage(chatID, "Error while cloning the sticker, please wait a while and resend the sticker to retry.", nil, nil, nil, messageID)
         return
@@ -94,6 +95,7 @@ local function processSticker(request)
                 end
             end
         else --Create a new sticker set
+            STATSD:increment("stickers.stickerset.created,volume="..tostring(volume))
             local title = string.format("%s's collection vol.%d", userFirstName, volume)
             local ok3, err = pcall(telegram.createNewStickerSet, userID, name, title, pngSticker, tgsSticker, emoji or "⚠", not not maskPosition, maskPosition)
             if not ok3 then ok2, setName = false, err break end
@@ -106,9 +108,11 @@ local function processSticker(request)
     end
 
     if ok2 then
+        STATSD:increment("stickers.proccessed,type="..(isAnimated and "animated" or maskPosition and "mask" or "static"))
         local stickerSet = telegram.getStickerSet(setName)
         telegram.sendMessage(chatID, "Added into ["..stickerSet.title.."](https://t.me/addstickers/"..setName..") "..(newSet and "**(New)** " or "").."successfully ✅\nThe sticker will take a while to show in the pack.", "Markdown", nil, nil, messageID)
     else
+        STATSD:increment("stickers.failure,stage=add,error="..tostring(setName))
         logger.error("Failed to add sticker:", setName)
         telegram.sendMessage(chatID, "Failed to add the sticker, please re-send the sticker to try again", nil, nil, nil, messageID)
     end
@@ -126,6 +130,7 @@ local function newChatWorker(chatID)
 
             local ok, err = pcall(processSticker, request)
             if not ok then
+                STATSD:increment("stickers.worker.failure,error="..tostring(err))
                 logger.critical("Stickers worker failure:", err)
             end
 
@@ -157,7 +162,13 @@ resumeChatWorkers()
 
 --------------------------------[[ Connect workCQUE with the main CQUE ]]--------------------------------
 
-CQUE:wrap(function() while not terminateWorkers do assert(workCQUE:step()) cqueues.sleep() end end)
+CQUE:wrap(function()
+    while not terminateWorkers do
+        STATSD:gauge("stickers.worker.count", workCQUE:count())
+        assert(workCQUE:step())
+        cqueues.sleep()
+    end
+end)
 
 --------------------------------[[ Exit Handler ]]--------------------------------
 
@@ -196,12 +207,14 @@ local function stickerHandler(update)
         if not response.text or response.text:sub(1,1) == "/" then return end
         response.chat:sendMessage("Please send the sticker you want to add into your collections\nSend /help for help", nil, nil, nil, response.messageID)
         if workChats[chatID] then response:sendChatAction("typing") end
+        STATSD:increment("stickers.update.nonsticker")
         return
     end
 
     if #workQueue[chatID] >= workQueueLimit then
         response.chat:sendMessage("Please wait until the previous stickers are processed ⚠", nil, nil, nil, response.messageID)
         response.chat:sendChatAction("typing")
+        STATSD:increment("stickers.queue.full")
         return
     end
 

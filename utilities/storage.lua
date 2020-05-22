@@ -24,6 +24,7 @@ local function newFile(path)
 
     --Load saved data if exists.
     if lfs.attributes(path, "mode") == "file" then
+        STATSD:increment("storage.file,action=load")
         local file = assert(io.open(path, "r"))
         local rawdata = assert(file:read("*a"))
         file:close()
@@ -36,6 +37,7 @@ local function newFile(path)
     --- Save the JSON file, by calling the table as a function.
     -- @raise Error on filesystem or json encode failure.
     function meta.__call()
+        STATSD:increment("storage.file,action=save")
         local rawdata = cjson.encode(data)
         local file = assert(io.open(path, "w"))
         assert(file:write(rawdata))

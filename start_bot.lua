@@ -1,7 +1,16 @@
+local statsd = require("statsd")
+
+--The bot's statsd instance
+STATSD = statsd({
+    host = "127.0.0.1",
+    port = "9125",
+    namespace = "bot"
+})
+
 local logger = require("utilities.logger")
 
 logger.title("---------------------------")
-logger.title(" CollectStickersBot V1.1.4 ")
+logger.title(" CollectStickersBot V1.2.0 ")
 logger.title(" By Rami Sabbagh           ")
 logger.title("---------------------------")
 print("")
@@ -130,7 +139,9 @@ local function pullUpdates(timeout)
             while true do
                 ok, updates = pcall(telegram.getUpdates, lastUpdateID and lastUpdateID+1, 100, timeout)
                 if not ok then logger.warn("- Polling error:", updates) else break end
+                STATSD:increment("updates.polling.failure,reason="..tostring(updates))
             end
+            STATSD:gauge("updates.polling.recieved", #updates)
             nextIndex = 1
 
             while lastUpdateID and nextIndex <= #updates and updates[nextIndex].updateID <= lastUpdateID do
@@ -140,6 +151,7 @@ local function pullUpdates(timeout)
 
         local update = updates[nextIndex]
         nextIndex, lastUpdateID = nextIndex + 1, update.updateID
+        STATSD:increment("updates.processed")
         return update
     end
 
@@ -174,6 +186,7 @@ local function commandHandler(update)
     return function()
         local commandFunc = commands[commandName]
         if commandFunc then
+            STATSD:increment("commands,name="..tostring(commandName))
             local ok, interactive = pcall(commandFunc, update.message)
             if ok then
                 if interactive then
@@ -205,6 +218,7 @@ local function commandHandler(update)
                 logger.error("Failed to execute command '"..commandName.."':", interactive)
             end
         else
+            STATSD:increment("commands.unknown,name="..commandName)
             pcall(update.message.chat.sendMessage, update.message.chat, "Unknown command `/"..commandName.."`.", "Markdown")
         end
     end
@@ -222,9 +236,27 @@ local function interactiveHandler(update, handler, chatID)
     end
 end
 
+que:wrap(function()
+    STATSD:gauge("cque.count", CQUE:count())
+    cqueues.sleep(1)
+end)
+
 --The main bot loop
 que:wrap(function()
     for update in pullUpdates(CONFIG.pollingTimeout) do
+        --Increase update metrics
+        local updateType = "other"
+        if update.message then
+            updateType = "message"
+        elseif update.editedMessage then
+            updateType = "editedMessage"
+        elseif update.channelPost then
+            updateType = "channelPost"
+        elseif update.editedChannelPost then
+            updateType = "editedChannelPost"
+        end
+        STATSD:increment("update,type="..updateType)
+
         --Trigger the command handler
         local commandHandle = commandHandler(update)
         if commandHandle then que:wrap(commandHandle) end

@@ -9,6 +9,7 @@ globals = {
     "ME",
     "CQUE",
     "EQUE",
+    "STATSD",
     "CONFIG",
     "STORAGE",
     "INTERACTIVES"
