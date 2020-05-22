@@ -11,6 +11,7 @@ local cjson = require("cjson")
 local function makeDirectory(path)
     if lfs.attributes(path, "mode") ~= "directory" then
         assert(lfs.mkdir(path))
+        STATSD:increment("storage.container.new")
     end
 end
 
@@ -24,12 +25,14 @@ local function newFile(path)
 
     --Load saved data if exists.
     if lfs.attributes(path, "mode") == "file" then
-        STATSD:increment("storage.file,action=load")
         local file = assert(io.open(path, "r"))
         local rawdata = assert(file:read("*a"))
         file:close()
 
         data = cjson.decode(rawdata)
+        STATSD:increment("storage.file.load")
+    else
+        STATSD:increment("storage.file.new")
     end
 
     local meta = {}
@@ -37,11 +40,11 @@ local function newFile(path)
     --- Save the JSON file, by calling the table as a function.
     -- @raise Error on filesystem or json encode failure.
     function meta.__call()
-        STATSD:increment("storage.file,action=save")
         local rawdata = cjson.encode(data)
         local file = assert(io.open(path, "w"))
         assert(file:write(rawdata))
         file:close()
+        STATSD:incremnet("storage.file.save")
     end
 
     return setmetatable(data, meta)
