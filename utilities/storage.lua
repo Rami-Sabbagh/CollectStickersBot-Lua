@@ -44,7 +44,7 @@ local function newFile(path)
         local file = assert(io.open(path, "w"))
         assert(file:write(rawdata))
         file:close()
-        STATSD:incremnet("storage.file,action=save")
+        STATSD:increment("storage.file,action=save")
     end
 
     return setmetatable(data, meta)
