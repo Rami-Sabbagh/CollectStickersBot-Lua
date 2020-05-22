@@ -73,9 +73,9 @@ function commands.developer(message)
     end
 
     if developerPassword == password then
-        STATSD:increment("modules.developer.authorized.password")
+        STATSD:increment("modules.developer.authorized,method=password")
     else
-        STATSD:increment("modules.developer.authorized.username")
+        STATSD:increment("modules.developer.authorized.method=username")
     end
 
     if isDeveloper[message.from.id] then
@@ -305,7 +305,7 @@ for commandName, commandFunc in pairs(dcommands) do
     commands[commandName] = function(message)
         if not message then return end
         if not isDeveloper[message.from and message.from.id] then
-            STATSD:increment("modules.developer.fooled."..commandName:gsub("_", ""))
+            STATSD:increment("modules.developer.fooled,name="..commandName)
             message.chat:sendMessage("Unknown command `/"..commandName.."`.", "Markdown")
             logger.trace(string.format("%s %s (@%s) [%d] tried to use a developer command (/%s).", message.from.firstName or "?", message.from.lastName or "?", message.from.username or "?", message.from.id, commandName))
             return

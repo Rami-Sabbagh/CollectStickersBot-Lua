@@ -10,7 +10,7 @@ STATSD = statsd({
 local logger = require("utilities.logger")
 
 logger.title("---------------------------")
-logger.title(" CollectStickersBot V1.2.1 ")
+logger.title(" CollectStickersBot V1.2.2 ")
 logger.title(" By Rami Sabbagh           ")
 logger.title("---------------------------")
 print("")
@@ -30,9 +30,9 @@ do
         if ok then
             local endTime = cqueues.monotime()
             local letancy = math.floor((endTime - startTime) * 1000)
-            STATSD:timer("telegram.request.letancy."..tostring(method):lower(), letancy)
+            STATSD:gauge("telegram.request.letancy,method="..tostring(method):lower(), letancy)
         else
-            STATSD:increment("telegram.request.failure."..tostring(method):lower())
+            STATSD:increment("telegram.request.failure,method="..tostring(method):lower())
         end
 
         return ok, a, b
@@ -162,14 +162,14 @@ local function pullUpdates(timeout)
 
                 if not ok then logger.warn("- Polling error:", updates) else break end
                 STATSD:gauge("updates.polling.count", 0)
-                STATSD:increment("updates.polling.failed."..tostring(updates):gsub(" ", "_"):gsub("%.,", ""))
+                STATSD:increment("updates.polling.failed")
             end
             nextIndex = 1
             STATSD:gauge("updates.polling.count", #updates)
             STATSD:increment("updates.polling.total", #updates)
 
             local updatePollTime = cqueues.monotime()
-            if lastUpdatePollTime then STATSD:timer("updates.polling.delta", math.floor((updatePollTime-lastUpdatePollTime)*1000)) end
+            if lastUpdatePollTime then STATSD:gauge("updates.polling.delta", math.floor((updatePollTime-lastUpdatePollTime)*1000)) end
             lastUpdatePollTime = updatePollTime
 
             while lastUpdateID and nextIndex <= #updates and updates[nextIndex].updateID <= lastUpdateID do
@@ -221,10 +221,10 @@ local function commandHandler(update)
             local endTime = cqueues.monotime()
 
             local executionTime = math.floor((endTime - startTime)*1000)
-            STATSD:timer("commands.time."..commandVisiblity.."."..commandName:gsub("_", ""), executionTime)
+            STATSD:gauge("commands.time,visibility="..commandVisiblity..",name="..commandName, executionTime)
 
             if ok then
-                STATSD:increment("commands.success."..commandVisiblity.."."..commandName:gsub("_", ""))
+                STATSD:increment("commands.success,visiblity="..commandVisiblity..",name="..commandName)
                 if interactive then
                     local chatID = update.message.chat.id
                     --Tell the current interactive command that it lost control
@@ -251,12 +251,12 @@ local function commandHandler(update)
                 end
             else
                 checkError(interactive)
-                STATSD:increment("commands.failure."..commandVisiblity.."."..commandName:gsub("_", ""))
+                STATSD:increment("commands.failure,visibility="..commandVisiblity..",name="..commandName)
                 logger.error("Failed to execute command '"..commandName.."':", interactive)
             end
         else
             pcall(update.message.chat.sendMessage, update.message.chat, "Unknown command `/"..commandName.."`.", "Markdown")
-            STATSD:increment("commands.invalid."..commandName:gsub("_", ""))
+            STATSD:increment("commands.invalid,name="..commandName)
         end
     end
 end
@@ -284,11 +284,11 @@ local lastUpdateTime
 que:wrap(function()
     for update in pullUpdates(CONFIG.pollingTimeout) do
         local updateTime = cqueues.monotime()
-        if lastUpdateTime then STATSD:timer("updates.delta", math.floor((updateTime-lastUpdateTime)*1000)) end
+        if lastUpdateTime then STATSD:gauge("updates.delta", math.floor((updateTime-lastUpdateTime)*1000)) end
         lastUpdateTime = updateTime
 
         --Increase update metrics
-        STATSD:increment("updates.processed")
+        STATSD:increment("updates.processed.total")
 
         local updateType = "other"
         if update.message then
@@ -300,7 +300,7 @@ que:wrap(function()
         elseif update.editedChannelPost then
             updateType = "edited_channel_post"
         end
-        STATSD:increment("updates.processed."..updateType)
+        STATSD:increment("updates.processed,type="..updateType)
 
         --Trigger the command handler
         local commandHandle = commandHandler(update)
@@ -344,10 +344,10 @@ if not ok then
     print("")
     if checkError(err, true) then
         logger.error(err)
-        STATSD:increment("bot.exit."..err:lower():gsub(".*%s"))
+        STATSD:increment("bot.exit,reason="..err:lower():gsub(".*%s"))
     else
         logger.critical(err)
-        STATSD:increment("bot.exit.crash")
+        STATSD:increment("bot.exit,reason=crash")
     end
 
     local ok2, err2 = pcall(function()

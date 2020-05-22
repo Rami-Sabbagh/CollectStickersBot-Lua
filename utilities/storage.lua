@@ -11,7 +11,7 @@ local cjson = require("cjson")
 local function makeDirectory(path)
     if lfs.attributes(path, "mode") ~= "directory" then
         assert(lfs.mkdir(path))
-        STATSD:increment("storage.container.new")
+        STATSD:increment("storage.container,action=new")
     end
 end
 
@@ -30,9 +30,9 @@ local function newFile(path)
         file:close()
 
         data = cjson.decode(rawdata)
-        STATSD:increment("storage.file.load")
+        STATSD:increment("storage.file,action=load")
     else
-        STATSD:increment("storage.file.new")
+        STATSD:increment("storage.file,action=new")
     end
 
     local meta = {}
@@ -44,7 +44,7 @@ local function newFile(path)
         local file = assert(io.open(path, "w"))
         assert(file:write(rawdata))
         file:close()
-        STATSD:incremnet("storage.file.save")
+        STATSD:incremnet("storage.file,action=save")
     end
 
     return setmetatable(data, meta)

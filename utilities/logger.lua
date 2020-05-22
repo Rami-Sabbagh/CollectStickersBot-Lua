@@ -57,72 +57,72 @@ end
 
 ---Output a title log.
 function logger.title(...)
-    STATSD:increment("logger.log.title")
+    STATSD:increment("logger.log,level=title")
     logger.write("title", ...)
     io.write(titleColor) print(...) io.write(resetColor)
 end
 
 ---Output a loading log.
 function logger.loading(...)
-    STATSD:increment("logger.log.loading")
+    STATSD:increment("logger.log,level=loading")
     logger.write("loading", ...)
     io.write(loadingColor) print(...) io.write(resetColor)
 end
 
 ---Output a subloading log.
 function logger.subloading(...)
-    STATSD:increment("logger.log.subloading")
+    STATSD:increment("logger.log,level=subloading")
     logger.write("subloading", ...)
     io.write(subloadingColor) print(...) io.write(resetColor)
 end
 
 ---Output a colored log.
 function logger.colored(...)
-    STATSD:increment("logger.log.colored")
+    STATSD:increment("logger.log,level=colored")
     logger.write("colored", ...)
     print(color(table.concat({...}, " ")))
 end
 
 ---Request input from the user.
 function logger.prompt(...)
-    STATSD:increment("logger.log.prompt")
+    STATSD:increment("logger.log,level=prompt")
     logger.write("prompt", ...)
     io.write(promptColor) io.write(color.noReset(table.concat({...}, " "))) io.write(resetColor)
     return io.read("*l")
 end
 
 function logger.critical(...)
-    STATSD:increment("logger.log.critical")
+    STATSD:increment("logger.log,level=critical")
     logger.write("critical", ...)
     io.write(criticalColor) io.write(table.concat({...}, " ")) print(resetColor)
 end
 
 function logger.error(...)
-    STATSD:increment("logger.log.error")
+    STATSD:increment("logger.log,level=error")
     logger.write("error", ...)
     io.write(errorColor) print(...) io.write(resetColor)
 end
 
 function logger.warn(...)
-    STATSD:increment("logger.log.warn")
+    STATSD:increment("logger.log,level=warn")
     logger.write("warn", ...)
     io.write(warnColor) print(...) io.write(resetColor)
 end
 
 function logger.info(...)
-    STATSD:increment("logger.log.info")
+    STATSD:increment("logger.log,level=info")
     logger.write("info", ...)
     io.write(infoColor) print(...) io.write(resetColor)
 end
 
 function logger.debug(...)
-    STATSD:increment("logger.log.debug")
+    STATSD:increment("logger.log,level=debug")
     logger.write("debug", ...)
     io.write(debugColor) print(...) io.write(resetColor)
 end
 
 function logger.trace(...)
-    STATSD:increment("logger.log.trace")
+    STATSD:increment("logger.log,level=trace")
     logger.write("trace", ...)
     io.write(traceColor) print(...) io.write(resetColor)
 end
