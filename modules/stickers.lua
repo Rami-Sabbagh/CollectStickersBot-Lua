@@ -65,7 +65,7 @@ local function processSticker(request)
     local ok1, stickerData = downloadFile(stickerURL)
 
     if not ok1 then
-        STATSD:increment("modules.stickers.process.failure,stage=download,reason="..tostring(stickerData):gsub(" ", "_"):gsub("%.,", ""))
+        STATSD:increment("modules.stickers.process.failure,stage=download,reason="..tostring(stickerData):gsub(",", ""))
         logger.error("Failure while downloading a sticker, fileID:", fileID, "error:", stickerData)
         telegram.sendMessage(chatID, "Error while cloning the sticker, please wait a while and resend the sticker to retry.", nil, nil, nil, messageID)
         return
