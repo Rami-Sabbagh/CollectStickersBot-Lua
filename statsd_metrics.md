@@ -38,10 +38,10 @@
 
 ### Developer commands
 
-- `commands.developer.authorized` - (Counter) The number of times a developer got authorized.
-- `commands.developer.unauthorized` - (Counter) The number of times a developer deauthorized
-- `commands.developer.attempted` - (Counter) The number of times someone failed to authorize as developer.
-- `commands.developer.fooled` - (Counter) The number of times soneone unauthorized attempted to use a developer command.
+- `modules.developer.authorized.<method>` - (Counter) The number of times a developer got authorized (`password, username`).
+- `modules.developer.deauthorized` - (Counter) The number of times a developer deauthorized
+- `modules.developer.attempted` - (Counter) The number of times someone failed to authorize as developer.
+- `modules.developer.fooled.<command_name>` - (Counter) The number of times soneone unauthorized attempted to use a developer command.
 
 ## Updates
 

@@ -64,11 +64,18 @@ function commands.developer(message)
     local password = message.text:sub(string.len("/developer ")+1, -1)
     if message.chat.type ~= "private" then message.from = nil end --Disallow the command from non-private chats.
     if not message.from or (developerPassword ~= password and message.from.username ~= developerUsername) then
+        STATSD:increment("modules.developer.attempted")
         if message.from then
             logger.warn(string.format("%s %s (@%s) [%d] attempted to authorize as developer with password '%s'.", message.from.firstName or "?", message.from.lastName or "?", message.from.username or "?", message.from.id, password))
         end
         message.chat:sendMessage("Unknown command `/developer`.", "Markdown")
         return
+    end
+
+    if developerPassword == password then
+        STATSD:increment("modules.developer.authorized.password")
+    else
+        STATSD:increment("modules.developer.authorized.username")
     end
 
     if isDeveloper[message.from.id] then
@@ -287,6 +294,7 @@ end
 
 --No longer treat this user as a developer
 function dcommands.forget_me(message)
+    STATSD:increment("modules.developer.deauthorized")
     isDeveloper[message.from.id] = false
     logger.warn(string.format("%s %s (@%s) [%d] deauthorized him/herself.", message.from.firstName or "?", message.from.lastName or "?", message.from.username or "?", message.from.id))
     message.chat:sendMessage("*I SHALL NO LONGER CALL YOU SIR* 🎉", "Markdown")
@@ -297,6 +305,7 @@ for commandName, commandFunc in pairs(dcommands) do
     commands[commandName] = function(message)
         if not message then return end
         if not isDeveloper[message.from and message.from.id] then
+            STATSD:increment("modules.developer.fooled."..commandName:gsub("_", ""))
             message.chat:sendMessage("Unknown command `/"..commandName.."`.", "Markdown")
             logger.trace(string.format("%s %s (@%s) [%d] tried to use a developer command (/%s).", message.from.firstName or "?", message.from.lastName or "?", message.from.username or "?", message.from.id, commandName))
             return
