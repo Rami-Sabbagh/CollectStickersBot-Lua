@@ -129,6 +129,8 @@ EQUE:wrap(function()
     end
 end)
 
+local lastUpdatePollTime
+
 local function pullUpdates(timeout)
     local ok, updates = false, {}
     local nextIndex = 1
@@ -138,11 +140,18 @@ local function pullUpdates(timeout)
         while nextIndex > #updates or #updates == 0 do
             while true do
                 ok, updates = pcall(telegram.getUpdates, lastUpdateID and lastUpdateID+1, 100, timeout)
+
                 if not ok then logger.warn("- Polling error:", updates) else break end
-                STATSD:increment("updates.polling.failure,reason="..tostring(updates))
+                STATSD:gauge("updates.polling.count", 0)
+                STATSD:increment("updates.polling.failed."..tostring(updates):gsub(" ", "_"):gsub("%.,", ""))
             end
-            STATSD:gauge("updates.polling.recieved", #updates)
             nextIndex = 1
+            STATSD:gauge("updates.polling.count", #updates)
+            STATSD:increment("updates.polling.total", #updates)
+
+            local updatePollTime = cqueues.monotime()
+            if lastUpdatePollTime then STATSD:timer("updates.polling.delta", math.floor((updatePollTime-lastUpdatePollTime)*1000)) end
+            lastUpdatePollTime = updatePollTime
 
             while lastUpdateID and nextIndex <= #updates and updates[nextIndex].updateID <= lastUpdateID do
                 nextIndex = nextIndex + 1
@@ -151,7 +160,6 @@ local function pullUpdates(timeout)
 
         local update = updates[nextIndex]
         nextIndex, lastUpdateID = nextIndex + 1, update.updateID
-        STATSD:increment("updates.processed")
         return update
     end
 
@@ -186,7 +194,6 @@ local function commandHandler(update)
     return function()
         local commandFunc = commands[commandName]
         if commandFunc then
-            STATSD:increment("commands,name="..tostring(commandName))
             local ok, interactive = pcall(commandFunc, update.message)
             if ok then
                 if interactive then
@@ -218,7 +225,6 @@ local function commandHandler(update)
                 logger.error("Failed to execute command '"..commandName.."':", interactive)
             end
         else
-            STATSD:increment("commands.unknown,name="..commandName)
             pcall(update.message.chat.sendMessage, update.message.chat, "Unknown command `/"..commandName.."`.", "Markdown")
         end
     end
@@ -237,25 +243,33 @@ local function interactiveHandler(update, handler, chatID)
 end
 
 que:wrap(function()
-    STATSD:gauge("cque.count", CQUE:count())
+    STATSD:gauge("bot.cque.count", que:count())
     cqueues.sleep(1)
 end)
+
+local lastUpdateTime
 
 --The main bot loop
 que:wrap(function()
     for update in pullUpdates(CONFIG.pollingTimeout) do
+        local updateTime = cqueues.monotime()
+        if lastUpdateTime then STATSD:timer("updates.delta", math.floor((updateTime-lastUpdateTime)*1000)) end
+        lastUpdateTime = updateTime
+
         --Increase update metrics
+        STATSD:increment("updates.processed")
+
         local updateType = "other"
         if update.message then
             updateType = "message"
         elseif update.editedMessage then
-            updateType = "editedMessage"
+            updateType = "edited_message"
         elseif update.channelPost then
-            updateType = "channelPost"
+            updateType = "channel_post"
         elseif update.editedChannelPost then
-            updateType = "editedChannelPost"
+            updateType = "edited_channel_post"
         end
-        STATSD:increment("update,type="..updateType)
+        STATSD:increment("updates.processed."..updateType)
 
         --Trigger the command handler
         local commandHandle = commandHandler(update)
@@ -284,6 +298,8 @@ print("")
 logger.colored("%{bright green}Ready.")
 print("")
 
+STATSD:increment("bot.ready")
+
 local ok, err = que:loop()
 
 print("")
@@ -297,8 +313,10 @@ if not ok then
     print("")
     if checkError(err, true) then
         logger.error(err)
+        STATSD:increment("bot.exit."..err:lower():gsub(".*%s"))
     else
         logger.critical(err)
+        STATSD:increment("bot.exit.crash")
     end
 
     local ok2, err2 = pcall(function()
