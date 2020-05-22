@@ -13,3 +13,4 @@ sudo luarocks install lua-cjson lua-http cqueues LuaFileSystem ansicolors
 - `cqueue` for the bot to operante asynchronously internally.
 - `LuaFileSystem` for the bot's storage system to work.
 - `ansicolors` to give the bot's terminal output some colors.
+- `statsd` for sending bot metrices.
