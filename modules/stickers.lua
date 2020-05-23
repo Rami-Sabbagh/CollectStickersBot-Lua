@@ -8,6 +8,7 @@ local telegram = require("telegram")
 
 local workDelay = 4 --Cooldown time (in seconds) between each sticker process.
 local workQueueLimit = 10
+local workerPerChat = 2
 local workQueue = STORAGE.stickers.workQueue
 local workChats = STORAGE.stickers.workChats
 local workCQUE = cqueues.new()
@@ -131,7 +132,7 @@ local function newChatWorker(chatID)
     workCQUE:wrap(function()
         STATSD:increment("modules.stickers.worker,action=started")
 
-        while #workQueue[sChatID] > 0 and not terminateWorkers do
+        while workQueue[sChatID] and #workQueue[sChatID] > 0 and not terminateWorkers do
             local request = workQueue[sChatID][#workQueue[sChatID]] --The last one in the queue.
             workQueue[sChatID][#workQueue[sChatID]] = nil --Remove it from the queue.
 
@@ -141,15 +142,18 @@ local function newChatWorker(chatID)
                 logger.critical("Stickers worker failure:", err)
             end
 
-            if #workQueue[sChatID] > 0 and not terminateWorkers then
+            if workQueue[sChatID] and #workQueue[sChatID] > 0 and not terminateWorkers then
                 telegram.sendChatAction(chatID, "typing")
                 cqueues.sleep(workDelay)
             end
         end
 
-        if #workQueue[sChatID] == 0 then
-            workChats[sChatID] = nil
-            workQueue[sChatID] = nil
+        if not workQueue[sChatID] or #workQueue[sChatID] == 0 then
+            workChats[sChatID] = workChats[sChatID] - 1
+            if workChats[sChatID] <= 0 then
+                workQueue[sChatID] = nil
+                workChats[sChatID] = nil
+            end
         end
 
         STATSD:increment("modules.stickers.worker,action=finished")
@@ -160,7 +164,9 @@ end
 local function resumeChatWorkers()
     for chatID, active in pairs(workChats) do
         if active then
-            newChatWorker(tonumber(chatID))
+            for _=1, tonumber(active) or 1 do
+                newChatWorker(tonumber(chatID))
+            end
         end
     end
 end
@@ -251,7 +257,10 @@ local function stickerHandler(update)
 
     --This is a new queue
     if not workChats[chatID] then
-        workChats[chatID] = true
+        workChats[chatID] = 1
+        newChatWorker(response.chat.id)
+    elseif workChats[chatID] < workerPerChat then
+        workChats[chatID] = workChats[chatID] + 1
         newChatWorker(response.chat.id)
     end
 
