@@ -262,6 +262,7 @@ local function stickerHandler(update)
         newChatWorker(response.chat.id)
     elseif workChats[chatID] < workerPerChat then
         workChats[chatID] = workChats[chatID] + 1
+        cqueues.sleep(1)
         newChatWorker(response.chat.id)
     end
 
