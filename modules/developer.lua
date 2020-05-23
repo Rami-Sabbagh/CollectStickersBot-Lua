@@ -177,6 +177,81 @@ function dcommands.report_here(message)
     message.chat:sendMessage("Sir, This channel has been configured for sending critical reports successfully ✅")
 end
 
+--------------------------------[[ /get_file command ]]--------------------------------
+
+function dcommands.get_file(message)
+
+    --Whether the message is running in selective mode or not.
+    local selective = message.chat.type ~= "private" or nil
+
+    --The markup to be used when sending messages (force reply only when selective).
+    local replyMarkup = selective and forceReply
+
+    --The last message which the user has sent.
+    local response = message
+    --The message id to reply to, nil when not selective.
+    local replyToMessageID = selective and response.messageID
+
+    --The last bot's message
+    local lastMessage
+
+    local unsubscribe = false
+    return function(update, overridden)
+        if not update then
+            if overridden then
+                response.chat:sendMessage("Cancelled /get_file successfully ✅")
+            else
+                lastMessage = response.chat:sendMessage("Please send the file path sir", nil, nil, nil, replyToMessageID, replyMarkup)
+            end
+
+            return
+        end
+
+        if unsubscribe then return true end
+
+        --Ignore non-messages updates.
+        if not update.message then return end
+
+        --Ignore non-reply messages when in selective mode.
+        if selective and update.message.replyToMessage ~= lastMessage then return end
+
+        --Update the user's response message.
+        response = update.message
+
+        --Update replyToMessageID when in selective mode.
+        replyToMessageID = selective and response.messageID
+
+        if not response.text then
+            lastMessage = response.chat:sendMessage("Please send the file path sir", nil, nil, nil, replyToMessageID, replyMarkup)
+            return
+        end
+
+        unsubscribe = true
+
+        local path = response.text
+        local file, err = io.open(path, "rb")
+
+        if not file then
+            response.chat:sendMessage("Filed to open the file ⚠", nil, nil, nil, replyToMessageID)
+            logger.warn("Failed to open file (/get_file):", err)
+        else
+            local fileSize = file:seek("end")
+            file:seek("set")
+
+            if fileSize > 20*1024*1024 then
+                message.chat:sendMessage("Sir, the file is larger than 20 MBs 😅\nTelegram won't allow me to upload it, so you'll have to pull it manually, sorry 😕", nil, nil, nil, replyToMessageID)
+            elseif fileSize == 0 then
+                message.chat:sendMessage("Sir, the file is empty 😳", nil, nil, nil, replyToMessageID)
+            else
+                response.chat:sendChatAction("upload_document")
+                response.chat:sendDocument({filename=path:gsub(".*[\\/]", ""),data=file,len=fileSize}, nil, nil, nil, nil, replyToMessageID)
+            end
+        end
+
+        return true
+    end
+end
+
 --------------------------------[[ /upgrade command ]]--------------------------------
 
 --Upgrade the bot
