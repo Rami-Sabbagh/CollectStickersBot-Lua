@@ -81,10 +81,10 @@ local function processSticker(request)
         pngSticker = {filename="sticker.png", data=stickerData}
     end
 
-    local ok, ok2, stickerSet, newSet
+    local name, ok, ok2, stickerSet, newSet
     local volume = 1
     while true do
-        local name = string.format(DEVELOPERS[userID] and "Developer_%d_%d_by_%s" or "Collection_%d_%d_by_%s", volume, userID, ME.username)
+        name = string.format(DEVELOPERS[userID] and "Developer_%d_%d_by_%s" or "Collection_%d_%d_by_%s", volume, userID, ME.username)
         ok, stickerSet = pcall(telegram.getStickerSet, name)
         if ok then --Check if the sticker can be added to this set
             if stickerSet.isAnimated == request.isAnimated and #stickerSet.stickers < maxStickers then
@@ -111,7 +111,7 @@ local function processSticker(request)
     end
 
     if ok2 then
-        telegram.sendMessage(chatID, "Added into ["..stickerSet.title.."](https://t.me/addstickers/"..stickerSet.name..") "..(newSet and "**(New)** " or "").."successfully ✅\nThe sticker will take a while to show in the pack.", "Markdown", nil, nil, messageID)
+        telegram.sendMessage(chatID, "Added into ["..stickerSet.title.."](https://t.me/addstickers/"..name..") "..(newSet and "**(New)** " or "").."successfully ✅\nThe sticker will take a while to show in the pack.", "Markdown", nil, nil, messageID)
         local stickerType = isAnimated and "animated" or maskPosition and "mask" or "static"
         STATSD:increment("modules.stickers.process.success,type="..stickerType)
     else
