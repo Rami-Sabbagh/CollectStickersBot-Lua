@@ -76,7 +76,7 @@ function commands.developer(message)
     if developerPassword == password then
         STATSD:increment("modules.developer.authorized,method=password")
     else
-        STATSD:increment("modules.developer.authorized.method=username")
+        STATSD:increment("modules.developer.authorized,method=username")
     end
 
     if isDeveloper[message.from.id] then
