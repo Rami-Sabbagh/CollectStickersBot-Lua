@@ -81,19 +81,19 @@ local function processSticker(request)
         pngSticker = {filename="sticker.png", data=stickerData}
     end
 
-    local name, ok, ok2, stickerSet, newSet
+    local ok2, setName, newSet
     local volume = 1
     while true do
-        name = string.format(DEVELOPERS[userID] and "Developer_%d_%d_by_%s" or "Collection_%d_%d_by_%s", volume, userID, ME.username)
-        ok, stickerSet = pcall(telegram.getStickerSet, name)
+        local name = string.format(DEVELOPERS[userID] and "Developer_%d_%d_by_%s" or "Collection_%d_%d_by_%s", volume, userID, ME.username)
+        local ok, stickerSet = pcall(telegram.getStickerSet, name)
         if ok then --Check if the sticker can be added to this set
             if stickerSet.isAnimated == request.isAnimated and #stickerSet.stickers < maxStickers then
                 if (stickerSet.containesMasks and maskPosition) or not (stickerSet.containesMasks or maskPosition) then
                     --The sticker can be added to the set.
                     local ok3, err = pcall(telegram.addStickerToSet, userID, name, pngSticker, tgsSticker, emoji or "⚠", maskPosition)
-                    if not ok3 then ok2, stickerSet = false, err break end
+                    if not ok3 then ok2, setName = false, err break end
 
-                    ok2 = true
+                    ok2, setName = true, name
                     break
                 end
             end
@@ -101,9 +101,9 @@ local function processSticker(request)
             newSet = true
             local title = string.format("%s's collection vol.%d", userFirstName, volume)
             local ok3, err = pcall(telegram.createNewStickerSet, userID, name, title, pngSticker, tgsSticker, emoji or "⚠", not not maskPosition, maskPosition)
-            if not ok3 then ok2, stickerSet = false, err break end
+            if not ok3 then ok2, setName = false, err break end
 
-            ok2 = true
+            ok2, setName = true, name
             break
         end
 
@@ -111,12 +111,13 @@ local function processSticker(request)
     end
 
     if ok2 then
-        telegram.sendMessage(chatID, "Added into ["..stickerSet.title.."](https://t.me/addstickers/"..name..") "..(newSet and "**(New)** " or "").."successfully ✅\nThe sticker will take a while to show in the pack.", "Markdown", nil, nil, messageID)
+        local stickerSet = telegram.getStickerSet(setName)
+        telegram.sendMessage(chatID, "Added into ["..stickerSet.title.."](https://t.me/addstickers/"..setName..") "..(newSet and "**(New)** " or "").."successfully ✅\nThe sticker will take a while to show in the pack.", "Markdown", nil, nil, messageID)
         local stickerType = isAnimated and "animated" or maskPosition and "mask" or "static"
         STATSD:increment("modules.stickers.process.success,type="..stickerType)
     else
-        STATSD:increment("modules.stickers.process.failure,stage="..(newSet and "new" or "add")..",reason="..tostring(stickerSet):gsub(",", ""))
-        logger.error("Failed to add sticker:", stickerSet)
+        STATSD:increment("modules.stickers.process.failure,stage="..(newSet and "new" or "add")..",reason="..tostring(setName):gsub(",", ""))
+        logger.error("Failed to add sticker:", setName)
         telegram.sendMessage(chatID, "Failed to add the sticker, please re-send the sticker to try again", nil, nil, nil, messageID)
     end
 
