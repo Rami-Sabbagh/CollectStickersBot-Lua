@@ -6,8 +6,8 @@ local http = require("http.compat.socket")
 local cqueues = require("cqueues")
 local telegram = require("telegram")
 
-local workDelay = 5 --Cooldown time (in seconds) between each sticker process.
-local workQueueLimit = 5
+local workDelay = 4 --Cooldown time (in seconds) between each sticker process.
+local workQueueLimit = 10
 local workQueue = STORAGE.stickers.workQueue
 local workChats = STORAGE.stickers.workChats
 local workCQUE = cqueues.new()
