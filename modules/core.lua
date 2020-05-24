@@ -1,5 +1,7 @@
 --- Core module, contains essential core commands for the bot.
 
+local localization = require("utilities.localization")
+
 --The module's commands array
 local commands = {}
 
@@ -9,7 +11,7 @@ function commands.cancel(message)
     if not message then return end
     return function(_, _, previous)
         if not previous then
-            message.chat:sendMessage("No active command to cancel.")
+            message.chat:sendMessage(localization.format(message.from.id, "core_cancel_no_active_command"))
         end
 
         return true --Unsubscribe instantly
