@@ -7,9 +7,9 @@ local cqueues = require("cqueues")
 local telegram = require("telegram")
 local localization = require("utilities.localization")
 
-local workDelay = 4 --Cooldown time (in seconds) between each sticker process.
+local workDelay = 3 --Cooldown time (in seconds) between each sticker process.
 local workQueueLimit = 10
-local workerPerChat = 2
+local workerPerChat = 1
 local workQueue = STORAGE.stickers.workQueue
 local workChats = STORAGE.stickers.workChats
 local workCQUE = cqueues.new()
