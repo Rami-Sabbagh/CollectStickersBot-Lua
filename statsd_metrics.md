@@ -28,6 +28,10 @@
 - `modules.stickers.handler,action=full` - (Counter) The number of stickers which have been rejected due to the work queue being full.
 - `modules.stickers.handler,action=success` - (Counter) The number of times which the stickers counter worked fine.
 
+## Language
+
+- `language.selected,lang=<language_code>` - (Counter) The total counter of the times in which the language has been set.
+
 ## Commands
 
 ### User commands
