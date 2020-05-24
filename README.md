@@ -19,7 +19,7 @@ sudo apt install build-essential m4 luajit luarocks
 
 ```bash
 sudo luarocks install --server=https://luarocks.dev lua-telegram-bot
-sudo luarocks install lua-cjson lua-http cqueue LuaFileSystem ansicolors statsd
+sudo luarocks install lua-cjson lua-http cqueue LuaFileSystem ansicolors statsd ftcsv
 ```
 
 > If cqueues fails to build that might be due to `m4` not being installed, try to install it using `sudo apt install m4`.

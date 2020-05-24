@@ -14,3 +14,4 @@ sudo luarocks install lua-cjson lua-http cqueues LuaFileSystem ansicolors
 - `LuaFileSystem` for the bot's storage system to work.
 - `ansicolors` to give the bot's terminal output some colors.
 - `statsd` for sending bot metrices.
+- `ftcsv` for parsing `localization.csv`.
