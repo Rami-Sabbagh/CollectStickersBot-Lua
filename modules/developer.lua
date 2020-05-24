@@ -38,7 +38,7 @@ do
 
     local function report(...)
         if reportChatID then
-            local ok, err = pcall(telegram.sendMessage, reportChatID, "*[CRITICAL]:* "..table.concat({...}, " ").." ⚠", "Markdown")
+            local ok, err = pcall(telegram.sendMessage, reportChatID, "[CRITICAL]: "..table.concat({...}, " ").." ⚠")
             if not ok then logger.error("Failed to send critical report:", err) end
         end
     end
