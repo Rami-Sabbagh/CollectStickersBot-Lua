@@ -158,7 +158,7 @@ local function processSticker(request)
     if ok2 then
         local stickerSet = telegram.getStickerSet(setName)
         telegram.sendMessage(chatID, localization.format(userID, "stickers_clone_success"..(newSet and "_new" or ""), stickerSet.title, setName), "Markdown", nil, nil, messageID)
-        local stickerType = isPhoto and "phot" or isAnimated and "animated" or maskPosition and "mask" or "static"
+        local stickerType = isPhoto and "photo" or isAnimated and "animated" or maskPosition and "mask" or "static"
         STATSD:increment("modules.stickers.process.success,type="..stickerType)
     else
         STATSD:increment("modules.stickers.process.failure,stage="..(newSet and "new" or "add")..",reason="..tostring(setName):gsub(",", ""))

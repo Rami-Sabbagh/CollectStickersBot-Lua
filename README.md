@@ -9,10 +9,10 @@ A telegram bot for cloning stickers into your own stickers packs (collections)
 
 The bot requires `luajit` and some Lua libraries to be installed using `luarocks`
 
-### Installation of luajit and luarocks
+### Installation of luajit, luarocks and image-magick
 
 ```bash
-sudo apt install build-essential m4 luajit luarocks
+sudo apt install build-essential m4 luajit luarocks imagemagick
 ```
 
 ### Installation of the Lua libraries
