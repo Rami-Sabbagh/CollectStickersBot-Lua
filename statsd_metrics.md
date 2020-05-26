@@ -11,7 +11,9 @@
 - `modules.stickers.process.success,type=animated` - (Counter) Processed animated stickers count.
 - `modules.stickers.process.success,type=static` - (Counter) Processed static stickers count.
 - `modules.stickers.process.success,type=mask` - (Counter) Processed mask stickers count.
+- `modules.stickers.process.success,type=photo` - (Counter) Processed photo stickers count.
 - `modules.stickers.process.failure,stage=download,reason=<reason>` - (Counter) Stickers failed to be processed due to download failure.
+- `modules.stickers.process.failure,stage=convert,reason=<reason>` - (Counter) Stickers failed to be processed due to conversion failure.
 - `modules.stickers.process.failure,stage=new,reason=<reason>` - (Counter) Stickers failed to be processed due to failure in creating a new set for them.
 - `modules.stickers.process.failure,stage=add,reason=<reason>` - (Counter) Stickers failed to be processed due to failure in adding them to an existing set.
 
