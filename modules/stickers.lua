@@ -6,6 +6,7 @@ local http = require("http.compat.socket")
 local cqueues = require("cqueues")
 local telegram = require("telegram")
 local localization = require("utilities.localization")
+local lfs = require("lfs")
 
 local workDelay = 3 --Cooldown time (in seconds) between each sticker process.
 local workQueueLimit = 10
@@ -14,14 +15,30 @@ local workQueue = STORAGE.stickers.workQueue
 local workChats = STORAGE.stickers.workChats
 local workCQUE = cqueues.new()
 local terminateWorkers = false
+local imagesDirectory = "/run/shm/stickers/"
+
+--- Create the images processing directory.
+do
+    if lfs.attributes(imagesDirectory, "mode") ~= "directory" then
+        assert(lfs.mkdir(imagesDirectory))
+    end
+
+    for item in lfs.dir(imagesDirectory) do
+        if lfs.attributes(imagesDirectory..item, "mode") == "file" then
+            logger.warn("- Images tmp cleanup:", item)
+            os.remove(imagesDirectory..item)
+        end
+    end
+end
 
 --- Attempt to download a file.
 -- @tparam string url The url of the file to download.
+-- @tparam ?string filepath Download into a file.
 -- @treturn boolean `true` on success, `false` otherwise.
--- @treturn string The downloaded file's content on success, or the failure reason otherwise.
-local function downloadFile(url)
+-- @treturn ?string The downloaded file's content (if not downloading into a file) on success, or the failure reason otherwise.
+local function downloadFile(url, filepath)
     local dataTable = {}
-    local dataSink = ltn12.sink.table(dataTable)
+    local dataSink = filepath and ltn12.sink.file(io.open(filepath, "wb")) or ltn12.sink.table(dataTable)
 
     local ok, err = http.request{
         url = url,
@@ -56,6 +73,7 @@ local function processSticker(request)
     local userFirstName = request.userFirstName
     local fileID = request.fileID
     local emoji = request.emoji
+    local isPhoto = request.isPhoto
     local isAnimated = request.isAnimated
     local maskPosition = request.maskPosition and telegram.structures.MaskPosition(unpack(request.maskPosition))
 
@@ -64,13 +82,39 @@ local function processSticker(request)
     --Get the sticker download url.
     local stickerURL = stickerFile:getURL()
     --Download the sticker's data.
-    local ok1, stickerData = downloadFile(stickerURL)
+    local ok1, stickerData = downloadFile(stickerURL, isPhoto and string.format("%s%d_%d.jpg", imagesDirectory, chatID, messageID))
 
     if not ok1 then
         STATSD:increment("modules.stickers.process.failure,stage=download,reason="..tostring(stickerData):gsub(",", ""))
         logger.error("Failure while downloading a sticker, fileID:", fileID, "error:", stickerData)
         telegram.sendMessage(chatID, localization.format(userID, "stickers_clone_failure_download"), nil, nil, nil, messageID)
         return
+    end
+
+    if isPhoto then
+        local source = string.format("%s%d_%d.jpg", imagesDirectory, chatID, messageID)
+        local destination = string.format("%s%d_%d.png", imagesDirectory, chatID, messageID)
+        local exitcode = os.execute(string.format("convert %s -resize 512x512 %s", source, destination))
+        if exitcode ~= 0 then
+            STATSD:increment("modules.stickers.process.failure,stage=convert,reason=exitcode "..tostring(exitcode))
+            logger.error("Failure while converting a sticker, exitcode:", tostirng(exitcode))
+            telegram.sendMessage(chatID, localization.format(userID, "stickers_photo_too_large"), nil, nil, nil, messageID)
+            return
+        end
+
+        local file = assert(io.open(destination, "rb"))
+        stickerData = assert(file:read("*a"))
+        file:close()
+
+        os.remove(source)
+        os.remove(destination)
+
+        if #stickerData > 512*1024 then
+            STATSD:increment("modules.stickers.process.failure,stage=convert,reason=too large")
+            logger.error("Sticker too large:", #stickerData/1024)
+            telegram.sendMessage(chatID, localization.format(userID, "stickers_photo_too_large", math.ceil(#stickerData/1024)), nil, nil, nil, messageID)
+            return
+        end
     end
 
     local maxStickers, pngSticker, tgsSticker
@@ -114,7 +158,7 @@ local function processSticker(request)
     if ok2 then
         local stickerSet = telegram.getStickerSet(setName)
         telegram.sendMessage(chatID, localization.format(userID, "stickers_clone_success"..(newSet and "_new" or ""), stickerSet.title, setName), "Markdown", nil, nil, messageID)
-        local stickerType = isAnimated and "animated" or maskPosition and "mask" or "static"
+        local stickerType = isPhoto and "phot" or isAnimated and "animated" or maskPosition and "mask" or "static"
         STATSD:increment("modules.stickers.process.success,type="..stickerType)
     else
         STATSD:increment("modules.stickers.process.failure,stage="..(newSet and "new" or "add")..",reason="..tostring(setName):gsub(",", ""))
@@ -220,7 +264,9 @@ local function stickerHandler(update)
     local chatID = tostring(response.chat.id)
     workQueue[chatID] = workQueue[chatID] or {}
 
-    if not response.sticker then --Filter non sticker messages
+    local request = {}
+
+    if not response.sticker and not response.photo then --Filter non sticker and non photo messages
         if not response.text or response.text:sub(1,1) == "/" then return end
         STATSD:increment("modules.stickers.handler,action=invalid")
         response.chat:sendMessage(localization.format(response.from.id, "stickers_handler_invalid"), nil, nil, nil, response.messageID)
@@ -235,22 +281,44 @@ local function stickerHandler(update)
         return
     end
 
-    local request = {
-        messageID = response.messageID,
-        chatID = response.chat.id,
-        userID = response.from.id,
-        userFirstName = response.from.firstName,
-        fileID = response.sticker.fileID,
-        emoji = response.sticker.emoji,
-        isAnimated = response.sticker.isAnimated
-    }
+    if response.sticker then
+        request = {
+            messageID = response.messageID,
+            chatID = response.chat.id,
+            userID = response.from.id,
+            userFirstName = response.from.firstName,
+            fileID = response.sticker.fileID,
+            emoji = response.sticker.emoji,
+            isAnimated = response.sticker.isAnimated
+        }
 
-    if response.sticker.maskPosition then
-        request.maskPosition = {
-            response.sticker.maskPosition.point,
-            response.sticker.maskPosition.xShift,
-            response.sticker.maskPosition.yShift,
-            response.sticker.maskPosition.scale
+        if response.sticker.maskPosition then
+            request.maskPosition = {
+                response.sticker.maskPosition.point,
+                response.sticker.maskPosition.xShift,
+                response.sticker.maskPosition.yShift,
+                response.sticker.maskPosition.scale
+            }
+        end
+    elseif response.photo then
+        local bestMatch = response.photo[1]
+        local bestMax = math.max(bestMatch.width, bestMatch.height)
+        for _, photo in pairs(response.photo) do
+            local max = math.max(photo.width, photo.height)
+            if (bestMax < 512 and max > bestMax) or (max >= 512 and max < bestMax) then
+                bestMatch = photo
+            end
+        end
+
+        request = {
+            messageID = response.messageID,
+            chatID = response.chat.id,
+            userID = response.from.id,
+            userFirstName = response.from.firstName,
+            fileID = bestMatch.fileID,
+            emoji = "🖼",
+            isAnimated = false,
+            isPhoto = true
         }
     end
 

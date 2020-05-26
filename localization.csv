@@ -29,6 +29,8 @@ The sticker will take a while to show in the pack.","تمت الاضافة إل�
 التلغرم سيحتاج بعض الوقت ليظهر الستيكر في المجموعة","ضفتو على [%s](https://t.me/addstickers/%s) **(الجدييدة)** ✅
 التلغرم بدو شوية وقت حتى يطلع الستيكر عندك"
 stickers_clone_new_pack_name,%s's collection vol.%d,تشكيلة %s رقم %d,تشكيلة %s رقم %d
+stickers_photo_conversion_failure,Failed to convert the photo into a sticker ⚠,فشل في تحويل الصورة إلى ستيكر ⚠,ما قدرت حول هي الصورة لستيكر ⚠
+stickers_photo_too_large,"Sorry, but the converted photo turned out larget than the allowed size for a sticker (%d/512 kb) ⚠","أعتذر, لكن الصورة بعد التحويل أصبحت أكبر من الحجم المسموح لستيكر (%d/512 kb) ⚠","بعتذر, بس الصورة بعد التحويل طلع حجمها أكبر من الحد المسموح لستيكر (%d/512 kb) ⚠"
 stickers_handler_invalid,"Please send the sticker you want to add into your collections
 Send /help for help","الرجاء ارسال الستيكر الذي تريد اضافته لمجموعتك
 أرسل /help من أجل المساعدة","بعات ستيكر حتى ضيفو عتشكيلتك
