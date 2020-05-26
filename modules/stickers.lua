@@ -97,7 +97,7 @@ local function processSticker(request)
         local exitcode = os.execute(string.format("convert %s -resize 512x512 %s", source, destination))
         if exitcode ~= 0 then
             STATSD:increment("modules.stickers.process.failure,stage=convert,reason=exitcode "..tostring(exitcode))
-            logger.error("Failure while converting a sticker, exitcode:", tostirng(exitcode))
+            logger.error("Failure while converting a sticker, exitcode:", tostring(exitcode))
             telegram.sendMessage(chatID, localization.format(userID, "stickers_photo_too_large"), nil, nil, nil, messageID)
             return
         end
