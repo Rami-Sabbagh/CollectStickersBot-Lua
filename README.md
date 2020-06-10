@@ -12,7 +12,7 @@ The bot requires `luajit` and some Lua libraries to be installed using `luarocks
 ### Installation of luajit, luarocks and image-magick
 
 ```bash
-sudo apt install build-essential m4 luajit luarocks imagemagick
+sudo apt install build-essential m4 luajit luarocks imagemagick webp
 ```
 
 ### Installation of the Lua libraries
