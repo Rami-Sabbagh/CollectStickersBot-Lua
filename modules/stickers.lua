@@ -74,6 +74,7 @@ local function processSticker(request)
     local fileID = request.fileID
     local emoji = request.emoji
     local isPhoto = request.isPhoto
+    local photoType = request.photoType
     local isAnimated = request.isAnimated
     local maskPosition = request.maskPosition and telegram.structures.MaskPosition(unpack(request.maskPosition))
 
@@ -82,7 +83,7 @@ local function processSticker(request)
     --Get the sticker download url.
     local stickerURL = stickerFile:getURL()
     --Download the sticker's data.
-    local ok1, stickerData = downloadFile(stickerURL, isPhoto and string.format("%s%d_%d.jpg", imagesDirectory, chatID, messageID))
+    local ok1, stickerData = downloadFile(stickerURL, isPhoto and string.format("%s%d_%d.%s", imagesDirectory, chatID, messageID, photoType))
 
     if not ok1 then
         STATSD:increment("modules.stickers.process.failure,stage=download,reason="..tostring(stickerData):gsub(",", ""))
@@ -92,7 +93,7 @@ local function processSticker(request)
     end
 
     if isPhoto then
-        local source = string.format("%s%d_%d.jpg", imagesDirectory, chatID, messageID)
+        local source = string.format("%s%d_%d.%s", imagesDirectory, chatID, messageID, photoType)
         local destination = string.format("%s%d_%d.png", imagesDirectory, chatID, messageID)
         local exitcode = os.execute(string.format("convert %s -resize 512x512 %s", source, destination))
         if exitcode ~= 0 then
@@ -281,7 +282,7 @@ local function stickerHandler(update)
         return
     end
 
-    if response.sticker then
+    if response.sticker and response.sticker.emoji then
         request = {
             messageID = response.messageID,
             chatID = response.chat.id,
@@ -300,6 +301,18 @@ local function stickerHandler(update)
                 response.sticker.maskPosition.scale
             }
         end
+    elseif response.sticker then
+        request = {
+            messageID = response.messageID,
+            chatID = response.chat.id,
+            userID = response.from.id,
+            userFirstName = response.from.firstName,
+            fileID = response.sticker.fileID,
+            emoji = "🖼",
+            isAnimated = false,
+            isPhoto = true,
+            photoType = "webp"
+        }
     elseif response.photo then
         local bestMatch = response.photo[1]
         local bestMax = math.max(bestMatch.width, bestMatch.height)
@@ -318,7 +331,8 @@ local function stickerHandler(update)
             fileID = bestMatch.fileID,
             emoji = "🖼",
             isAnimated = false,
-            isPhoto = true
+            isPhoto = true,
+            photoType = "jpg"
         }
     end
 
