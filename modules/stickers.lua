@@ -254,6 +254,38 @@ end)
 --The module's commands array
 local commands = {}
 
+--------------------------------[[ /packs command ]]--------------------------------
+
+function commands.packs(message)
+    if not message then return "Lists your collections packs 📦" end
+
+    pcall(message.chat.sendChatAction, message.chat, "typing")
+
+    local lastVolume = 0
+    local function nextPackLink()
+        lastVolume = lastVolume + 1
+        local name = string.format(DEVELOPERS[message.from.id] and "Developer_%d_%d_by_%s" or "Collection_%d_%d_by_%s", lastVolume, message.from.id, ME.username)
+
+        local ok, stickerSet = pcall(telegram.getStickerSet, name)
+        if not ok then return end
+        return string.format("[%s](https://t.me/addstickers/%s)", stickerSet.title, name)
+    end
+
+    local links = {}
+
+    for link in nextPackLink do
+        table.insert(links, link)
+    end
+
+    if #links == 0 then
+        links = localization.format(message.from.id, "stickers_list_empty")
+    else
+        links = localization.format(message.from.id, "stickers_list_success", #links, table.concat(links, "\n"))
+    end
+
+    message.chat:sendMessage(links, "Markdown", true, false, message.messageID)
+end
+
 --------------------------------[[ Raw updates handler ]]--------------------------------
 
 local function stickerHandler(update)
