@@ -36,14 +36,14 @@ end
 --------------------------------[[ /language command ]]--------------------------------
 
 function commands.language(message)
-    if not message then return "Select the language of the bot" end
+    if not message then return "Select the language of the bot 🌐" end
     promptForLanguage(message.chat, message.from)
 end
 
 --------------------------------[[ /help command ]]--------------------------------
 
 function commands.help(message)
-    if not message then return "What can this bot do?" end
+    if not message then return "What can this bot do? 🤔" end
     sendHelp(message.chat, message.from)
 end
 
