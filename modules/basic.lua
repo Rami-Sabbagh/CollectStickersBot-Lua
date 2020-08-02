@@ -47,6 +47,13 @@ function commands.help(message)
     sendHelp(message.chat, message.from)
 end
 
+--------------------------------[[ /faq command ]]--------------------------------
+
+function commands.faq(message)
+    if not message then return "Frequently asked questions 📖" end
+    message.chat:sendMessage(localization.format(message.from.id, "basic_faq"), "Markdown")
+end
+
 --------------------------------[[ /ping command ]]--------------------------------
 
 function commands.ping(message)
