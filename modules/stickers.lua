@@ -283,7 +283,7 @@ function commands.packs(message)
         links = localization.format(message.from.id, "stickers_list_success", #links, table.concat(links, "\n"))
     end
 
-    message.chat:sendMessage(links, "Markdown", true, false, message.messageID)
+    message.chat:sendMessage(links, "Markdown", true)
 end
 
 --------------------------------[[ Raw updates handler ]]--------------------------------
